@@ -415,6 +415,11 @@ class MonsterBrowserDialog(QDialog):
         self.force_reexport_check.setToolTip("Re-export JSON from BIN before loading")
         toolbar.addWidget(self.force_reexport_check)
 
+        # Option to apply selected animations to the currently active monster
+        self.apply_to_active_check = QCheckBox("Apply animations to active monster")
+        self.apply_to_active_check.setToolTip("Instead of loading this monster, apply its animations to the currently loaded monster")
+        toolbar.addWidget(self.apply_to_active_check)
+
         main_layout.addLayout(toolbar)
 
         # Scroll area with grid
@@ -664,6 +669,10 @@ class MonsterBrowserDialog(QDialog):
     def force_reexport(self) -> bool:
         """Check if re-export is requested."""
         return self.force_reexport_check.isChecked()
+
+    def apply_animations_to_active(self) -> bool:
+        """Check if animations should be applied to the active monster instead of loading."""
+        return getattr(self, "apply_to_active_check", None) and self.apply_to_active_check.isChecked()
 
     def column_count(self) -> int:
         """Get current column count."""

@@ -1007,7 +1007,10 @@ class MSMAnimationViewer(QMainWindow):
         result = dialog.exec()
         self.settings.setValue('monster_browser/columns', dialog.column_count())
         if result == QDialog.DialogCode.Accepted and dialog.selected_entry:
-            self._handle_monster_browser_selection(dialog.selected_entry, dialog.force_reexport())
+            if dialog.apply_animations_to_active():
+                self._apply_animations_from_entry(dialog.selected_entry, dialog.force_reexport())
+            else:
+                self._handle_monster_browser_selection(dialog.selected_entry, dialog.force_reexport())
 
     def _handle_monster_browser_selection(self, entry: MonsterBrowserEntry, force_reexport: bool):
         """Load the selected monster entry, converting BINs as needed."""
@@ -1034,6 +1037,66 @@ class MSMAnimationViewer(QMainWindow):
             self.refresh_file_list()
             self.select_file_by_path(json_path)
         self.load_json_file(json_path)
+
+    def _apply_animations_from_entry(self, entry: MonsterBrowserEntry, force_reexport: bool):
+        """Apply animations from the given entry into the currently loaded monster JSON.
+
+        This replaces the `anims` array in the active JSON with the source's animations.
+        """
+        if not self.current_json_data:
+            QMessageBox.warning(self, "No Active Monster", "Load a target monster first to apply animations to.")
+            return
+
+        json_path = entry.json_path if entry.json_path and os.path.exists(entry.json_path) else None
+        bin_path = entry.bin_path if entry.bin_path and os.path.exists(entry.bin_path) else None
+
+        if force_reexport or not json_path:
+            if not bin_path:
+                QMessageBox.warning(self, "Missing BIN", f"No BIN available to convert for {entry.display_name}.")
+                return
+            json_path = self._convert_bin_file(bin_path, force=True, announce=True)
+            if not json_path:
+                return
+        elif not os.path.exists(json_path):
+            self.log_widget.log(f"JSON file missing for {entry.display_name}, attempting to rebuild.", "WARNING")
+            if not bin_path:
+                QMessageBox.warning(self, "Missing JSON", f"JSON for {entry.display_name} not found.")
+                return
+            json_path = self._convert_bin_file(bin_path, force=True, announce=True)
+            if not json_path:
+                return
+
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                payload = json.load(f)
+        except Exception as e:
+            self.log_widget.log(f"Failed to read source JSON: {e}", "ERROR")
+            QMessageBox.warning(self, "Load Failed", f"Could not load animation from {entry.display_name}: {e}")
+            return
+
+        normalized = self._normalize_animation_file_payload(payload)
+        if not normalized or 'anims' not in normalized:
+            QMessageBox.warning(self, "Invalid Animation", "Selected file does not contain usable animations.")
+            return
+
+        # Replace animations in current payload
+        try:
+            self.current_json_data['anims'] = copy.deepcopy(normalized['anims'])
+            # Merge sources if present
+            if 'sources' in normalized:
+                existing = self.current_json_data.get('sources', []) or []
+                for s in normalized.get('sources', []):
+                    if s not in existing:
+                        existing.append(s)
+                self.current_json_data['sources'] = existing
+
+            # Re-apply the current payload so UI updates accordingly
+            current_path = self.current_json_path or ''
+            self._apply_json_payload(current_path, self.current_json_data, announce=True)
+            self.log_widget.log(f"Applied animations from {entry.display_name} to active monster.", "SUCCESS")
+        except Exception as exc:
+            self.log_widget.log(f"Failed to apply animations: {exc}", "ERROR")
+            QMessageBox.warning(self, "Apply Failed", f"Failed to apply animations: {exc}")
 
     def on_file_search_changed(self, text: str):
         """Handle search text changes from the control panel."""
