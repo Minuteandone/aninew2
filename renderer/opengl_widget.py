@@ -57,6 +57,9 @@ class OpenGLAnimationWidget(QOpenGLWidget):
         # Core components
         self.texture_atlases: List[TextureAtlas] = []
         self.player = AnimationPlayer()
+        # Global tweening flag for this widget (controls whether linear interpolation is used)
+        self.tweening_enabled: bool = True
+        self.player.tweening_enabled = True
         self.renderer = SpriteRenderer()
         self.renderer.set_shader_registry(shader_registry)
         self.renderer.set_costume_pivot_adjustment_enabled(False)
@@ -2196,6 +2199,8 @@ class OpenGLAnimationWidget(QOpenGLWidget):
             if not animation:
                 continue
             player = AnimationPlayer()
+            # Inherit widget-level tweening setting so attachments match main playback
+            player.tweening_enabled = getattr(self, 'tweening_enabled', True)
             player.load_animation(animation)
             loop_flag = bool(payload.get("loop", True))
             player.loop = loop_flag
@@ -2225,6 +2230,20 @@ class OpenGLAnimationWidget(QOpenGLWidget):
                 )
             )
         self.attachment_instances = instances
+        self.update()
+
+    def set_tweening_enabled(self, enabled: bool):
+        """Enable or disable linear interpolation (tweening) for all players."""
+        self.tweening_enabled = bool(enabled)
+        try:
+            self.player.tweening_enabled = self.tweening_enabled
+        except Exception:
+            pass
+        for inst in getattr(self, 'attachment_instances', []):
+            try:
+                inst.player.tweening_enabled = self.tweening_enabled
+            except Exception:
+                continue
         self.update()
     
     def set_selection_state(self, layer_ids: Set[int], primary_id: Optional[int], lock: bool):

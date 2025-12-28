@@ -550,6 +550,7 @@ class MSMAnimationViewer(QMainWindow):
         self.control_panel.reset_camera_clicked.connect(self.reset_camera)
         self.control_panel.fit_to_view_clicked.connect(self.fit_to_view)
         self.control_panel.show_bones_toggled.connect(self.toggle_bone_overlay)
+        self.control_panel.tweening_toggled.connect(self.on_tweening_toggled)
         self.control_panel.reset_offsets_clicked.connect(self.reset_sprite_offsets)
         self.control_panel.export_frame_clicked.connect(self.export_current_frame)
         self.control_panel.export_frames_sequence_clicked.connect(self.export_animation_frames_as_png)
@@ -3758,6 +3759,12 @@ class MSMAnimationViewer(QMainWindow):
             baseline_layers,
         )
         self._pose_baseline_player = AnimationPlayer()
+        # Ensure baseline player respects current tweening setting
+        try:
+            current_tween = getattr(self.gl_widget.player, 'tweening_enabled', True)
+        except Exception:
+            current_tween = True
+        self._pose_baseline_player.tweening_enabled = current_tween
         self._pose_baseline_player.load_animation(baseline_anim)
         self._pose_baseline_lookup = {layer.layer_id: layer for layer in baseline_layers}
 
@@ -7121,6 +7128,18 @@ class MSMAnimationViewer(QMainWindow):
         """Enable or disable multi-sample anti-aliasing in the OpenGL view."""
         self.gl_widget.set_antialiasing_enabled(enabled)
         self.gl_widget.update()
+
+    def on_tweening_toggled(self, enabled: bool):
+        """Enable or disable tweening (linear interpolation) across players."""
+        try:
+            self.gl_widget.set_tweening_enabled(enabled)
+        except Exception:
+            pass
+        if getattr(self, '_pose_baseline_player', None):
+            try:
+                self._pose_baseline_player.tweening_enabled = enabled
+            except Exception:
+                pass
 
     def toggle_scale_gizmo(self, enabled: bool):
         """Toggle the scaling gizmo overlay."""

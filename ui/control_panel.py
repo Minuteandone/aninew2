@@ -54,6 +54,7 @@ class ControlPanel(QWidget):
     reset_camera_clicked = pyqtSignal()
     fit_to_view_clicked = pyqtSignal()
     show_bones_toggled = pyqtSignal(bool)
+    tweening_toggled = pyqtSignal(bool)
     reset_offsets_clicked = pyqtSignal()
     export_frame_clicked = pyqtSignal()
     export_frames_sequence_clicked = pyqtSignal()
@@ -745,6 +746,13 @@ class ControlPanel(QWidget):
         self.antialias_checkbox.setChecked(True)
         self.antialias_checkbox.toggled.connect(self.antialias_toggled.emit)
         render_layout.addWidget(self.antialias_checkbox)
+        
+        # Tweening toggle: enable/disable linear interpolation
+        self.tweening_checkbox = QCheckBox("Enable Tweening (Linear Interpolation)")
+        self.tweening_checkbox.setToolTip("When disabled, values snap to the previous keyframe (no tweening)")
+        self.tweening_checkbox.setChecked(True)
+        self.tweening_checkbox.toggled.connect(self.tweening_toggled.emit)
+        render_layout.addWidget(self.tweening_checkbox)
         
         bones_help = QLabel("Shows parent-child connections and anchor points")
         bones_help.setStyleSheet("color: gray; font-size: 8pt; font-style: italic;")

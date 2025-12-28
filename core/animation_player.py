@@ -20,6 +20,9 @@ class AnimationPlayer:
         self.loop: bool = True
         self.duration: float = 0.0
         self.playback_speed: float = 1.0
+        # Whether linear interpolation (tweening) is enabled.
+        # When False, values snap to the previous keyframe (no tween).
+        self.tweening_enabled: bool = True
     
     def load_animation(self, anim_data: AnimationData):
         """
@@ -119,6 +122,10 @@ class AnimationPlayer:
             
             # LINEAR interpolation (0)
             if prev_kf[2] == 0:
+                # If tweening has been disabled globally, treat linear interpolation
+                # as immediate (snap to prev keyframe) instead of interpolating.
+                if not getattr(self, "tweening_enabled", True):
+                    return prev_kf[1]
                 time_diff = next_kf[0] - prev_kf[0]
                 if time_diff > 0:
                     t = (time - prev_kf[0]) / time_diff
