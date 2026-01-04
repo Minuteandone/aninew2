@@ -551,6 +551,11 @@ class MSMAnimationViewer(QMainWindow):
         self.control_panel.fit_to_view_clicked.connect(self.fit_to_view)
         self.control_panel.show_bones_toggled.connect(self.toggle_bone_overlay)
         self.control_panel.tweening_toggled.connect(self.on_tweening_toggled)
+        # Glitch controls
+        self.control_panel.glitch_jitter_toggled.connect(self.on_glitch_jitter_toggled)
+        self.control_panel.glitch_jitter_amount_changed.connect(self.on_glitch_jitter_amount_changed)
+        self.control_panel.glitch_sprite_toggled.connect(self.on_glitch_sprite_toggled)
+        self.control_panel.glitch_sprite_chance_changed.connect(self.on_glitch_sprite_chance_changed)
         self.control_panel.reset_offsets_clicked.connect(self.reset_sprite_offsets)
         self.control_panel.export_frame_clicked.connect(self.export_current_frame)
         self.control_panel.export_frames_sequence_clicked.connect(self.export_animation_frames_as_png)
@@ -7138,6 +7143,55 @@ class MSMAnimationViewer(QMainWindow):
         if getattr(self, '_pose_baseline_player', None):
             try:
                 self._pose_baseline_player.tweening_enabled = enabled
+            except Exception:
+                pass
+
+    def on_glitch_jitter_toggled(self, enabled: bool):
+        """Enable/disable jitter glitching for animation players."""
+        try:
+            self.gl_widget.set_glitch_jitter_enabled(enabled)
+        except Exception:
+            pass
+        if getattr(self, '_pose_baseline_player', None):
+            try:
+                self._pose_baseline_player.glitch_jitter_enabled = enabled
+                # keep amplitude in sync if present
+                self._pose_baseline_player.jitter_amplitude = getattr(self.gl_widget, 'jitter_amplitude', 1.0)
+            except Exception:
+                pass
+
+    def on_glitch_jitter_amount_changed(self, amount: float):
+        try:
+            self.gl_widget.set_glitch_jitter_amount(amount)
+        except Exception:
+            pass
+        if getattr(self, '_pose_baseline_player', None):
+            try:
+                self._pose_baseline_player.jitter_amplitude = float(amount)
+            except Exception:
+                pass
+
+    def on_glitch_sprite_toggled(self, enabled: bool):
+        """Enable/disable sprite flicker glitch."""
+        try:
+            self.gl_widget.set_glitch_sprite_enabled(enabled)
+        except Exception:
+            pass
+        if getattr(self, '_pose_baseline_player', None):
+            try:
+                self._pose_baseline_player.glitch_sprite_enabled = enabled
+                self._pose_baseline_player.glitch_sprite_chance = getattr(self.gl_widget, 'glitch_sprite_chance', 0.1)
+            except Exception:
+                pass
+
+    def on_glitch_sprite_chance_changed(self, chance: float):
+        try:
+            self.gl_widget.set_glitch_sprite_chance(chance)
+        except Exception:
+            pass
+        if getattr(self, '_pose_baseline_player', None):
+            try:
+                self._pose_baseline_player.glitch_sprite_chance = float(chance)
             except Exception:
                 pass
 

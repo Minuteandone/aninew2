@@ -143,6 +143,12 @@ class OpenGLAnimationWidget(QOpenGLWidget):
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(16)  # ~60 FPS
 
+        # Glitch options (widget-level defaults propagated to players)
+        self.glitch_jitter_enabled: bool = False
+        self.jitter_amplitude: float = 1.0
+        self.glitch_sprite_enabled: bool = False
+        self.glitch_sprite_chance: float = 0.1
+
         # Anchor logging is controlled by the main window preferences
         self.renderer.enable_logging = False
         
@@ -2242,6 +2248,69 @@ class OpenGLAnimationWidget(QOpenGLWidget):
         for inst in getattr(self, 'attachment_instances', []):
             try:
                 inst.player.tweening_enabled = self.tweening_enabled
+            except Exception:
+                continue
+        self.update()
+
+    def set_glitch_jitter_enabled(self, enabled: bool):
+        """Enable or disable per-frame jitter for players."""
+        self.glitch_jitter_enabled = bool(enabled)
+        try:
+            self.player.glitch_jitter_enabled = self.glitch_jitter_enabled
+            self.player.jitter_amplitude = float(getattr(self, 'jitter_amplitude', 1.0))
+        except Exception:
+            pass
+        for inst in getattr(self, 'attachment_instances', []):
+            try:
+                inst.player.glitch_jitter_enabled = self.glitch_jitter_enabled
+                inst.player.jitter_amplitude = float(getattr(self, 'jitter_amplitude', 1.0))
+            except Exception:
+                continue
+        self.update()
+
+    def set_glitch_jitter_amount(self, amount: float):
+        try:
+            self.jitter_amplitude = float(amount)
+        except Exception:
+            self.jitter_amplitude = 1.0
+        try:
+            self.player.jitter_amplitude = self.jitter_amplitude
+        except Exception:
+            pass
+        for inst in getattr(self, 'attachment_instances', []):
+            try:
+                inst.player.jitter_amplitude = self.jitter_amplitude
+            except Exception:
+                continue
+        self.update()
+
+    def set_glitch_sprite_enabled(self, enabled: bool):
+        self.glitch_sprite_enabled = bool(enabled)
+        try:
+            self.player.glitch_sprite_enabled = self.glitch_sprite_enabled
+            self.player.glitch_sprite_chance = float(getattr(self, 'glitch_sprite_chance', 0.1))
+        except Exception:
+            pass
+        for inst in getattr(self, 'attachment_instances', []):
+            try:
+                inst.player.glitch_sprite_enabled = self.glitch_sprite_enabled
+                inst.player.glitch_sprite_chance = float(getattr(self, 'glitch_sprite_chance', 0.1))
+            except Exception:
+                continue
+        self.update()
+
+    def set_glitch_sprite_chance(self, chance: float):
+        try:
+            self.glitch_sprite_chance = float(chance)
+        except Exception:
+            self.glitch_sprite_chance = 0.1
+        try:
+            self.player.glitch_sprite_chance = self.glitch_sprite_chance
+        except Exception:
+            pass
+        for inst in getattr(self, 'attachment_instances', []):
+            try:
+                inst.player.glitch_sprite_chance = self.glitch_sprite_chance
             except Exception:
                 continue
         self.update()

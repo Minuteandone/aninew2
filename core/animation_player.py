@@ -4,6 +4,7 @@ Handles animation playback, timing, and keyframe interpolation
 """
 
 import re
+import random
 from typing import Optional, Dict
 from .data_structures import AnimationData, LayerData, KeyframeData
 
@@ -23,6 +24,14 @@ class AnimationPlayer:
         # Whether linear interpolation (tweening) is enabled.
         # When False, values snap to the previous keyframe (no tween).
         self.tweening_enabled: bool = True
+        # Glitch options
+        self.glitch_jitter_enabled: bool = False
+        # Jitter amplitude in the same units as pos_x/pos_y (pixels before world scaling)
+        self.jitter_amplitude: float = 1.0
+        # Sprite flicker / glitch
+        self.glitch_sprite_enabled: bool = False
+        # Probability (0.0-1.0) per-layer evaluation that a sprite will flicker (be hidden)
+        self.glitch_sprite_chance: float = 0.1
     
     def load_animation(self, anim_data: AnimationData):
         """
@@ -175,6 +184,28 @@ class AnimationPlayer:
 
         if getattr(layer, "render_tags", None) and "neutral_color" in layer.render_tags:
             r = g = b = 255
+
+        # Apply glitch jitter (small random offsets) if enabled
+        if getattr(self, 'glitch_jitter_enabled', False):
+            try:
+                amp = float(getattr(self, 'jitter_amplitude', 1.0))
+            except Exception:
+                amp = 1.0
+            if amp > 0:
+                # small pixel jitter on position
+                pos_x += random.uniform(-amp, amp)
+                pos_y += random.uniform(-amp, amp)
+                # small rotation jitter (degrees)
+                rotation += random.uniform(-amp * 0.25, amp * 0.25)
+
+        # Apply sprite flicker/glitch: randomly hide sprite for a frame
+        if getattr(self, 'glitch_sprite_enabled', False):
+            try:
+                chance = float(getattr(self, 'glitch_sprite_chance', 0.1))
+            except Exception:
+                chance = 0.1
+            if chance > 0 and random.random() < max(0.0, min(1.0, chance)):
+                sprite_name = ""
 
         return {
             'pos_x': pos_x, 'pos_y': pos_y,
