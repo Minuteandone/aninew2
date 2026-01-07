@@ -200,6 +200,7 @@ class MSMAnimationViewer(QMainWindow):
         self.solid_bg_enabled: bool = self.settings.value('export/solid_bg_enabled', False, type=bool)
         solid_bg_hex = self.settings.value('export/solid_bg_color', '#000000FF', type=str) or '#000000FF'
         self.solid_bg_color: Tuple[int, int, int, int] = self._parse_rgba_hex(solid_bg_hex, (0, 0, 0, 255))
+        self.force_opaque: bool = self.settings.value('viewer/force_opaque', False, type=bool)
         self._layer_thumbnail_cache: Dict[str, Optional[QPixmap]] = {}
         self._atlas_image_cache: Dict[str, Optional[Image.Image]] = {}
         self._layer_sprite_preview_state: Dict[int, Optional[str]] = {}
@@ -281,12 +282,15 @@ class MSMAnimationViewer(QMainWindow):
         self.control_panel.set_sprite_tools_enabled(False)
         self.control_panel.set_solid_bg_enabled(self.solid_bg_enabled)
         self.control_panel.set_solid_bg_color(self.solid_bg_color)
+        self.control_panel.set_remove_transparency_enabled(self.force_opaque)
         splitter.addWidget(self.control_panel)
         
         # Center - OpenGL viewer
         self.gl_widget = OpenGLAnimationWidget(shader_registry=self.shader_registry)
         self.gl_widget.set_costume_pivot_adjustment_enabled(False)
         self.gl_widget.set_zoom_to_cursor(self.export_settings.camera_zoom_to_cursor)
+        # Apply saved viewer flags
+        self.gl_widget.set_force_opaque(self.force_opaque)
         self.gl_widget.animation_time_changed.connect(self.on_animation_time_changed)
         self.gl_widget.animation_looped.connect(self.on_animation_looped)
         self.gl_widget.playback_state_changed.connect(self.on_playback_state_changed)
@@ -569,6 +573,7 @@ class MSMAnimationViewer(QMainWindow):
         self.control_panel.solid_bg_enabled_changed.connect(self.on_solid_bg_enabled_changed)
         self.control_panel.solid_bg_color_changed.connect(self.on_solid_bg_color_changed)
         self.control_panel.solid_bg_auto_requested.connect(self.on_auto_background_color_requested)
+        self.control_panel.remove_transparency_toggled.connect(self.on_remove_transparency_toggled)
         self.control_panel.audio_enabled_changed.connect(self.on_audio_enabled_changed)
         self.control_panel.audio_volume_changed.connect(self.on_audio_volume_changed)
         self.control_panel.antialias_toggled.connect(self.toggle_antialiasing)
@@ -7311,6 +7316,13 @@ class MSMAnimationViewer(QMainWindow):
     def on_solid_bg_color_changed(self, r: int, g: int, b: int, a: int):
         """Update the stored export background color."""
         self._apply_solid_bg_color((r, g, b, a), announce=False)
+
+    def on_remove_transparency_toggled(self, enabled: bool):
+        """Toggle forcing opaque rendering in viewer."""
+        self.force_opaque = bool(enabled)
+        self.settings.setValue('viewer/force_opaque', self.force_opaque)
+        if hasattr(self, 'gl_widget') and self.gl_widget:
+            self.gl_widget.set_force_opaque(self.force_opaque)
 
     def on_auto_background_color_requested(self):
         """Attempt to find a color not present in current sprite textures."""

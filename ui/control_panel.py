@@ -120,6 +120,7 @@ class ControlPanel(QWidget):
     export_animation_bin_clicked = pyqtSignal()
     solid_bg_enabled_changed = pyqtSignal(bool)
     solid_bg_color_changed = pyqtSignal(int, int, int, int)
+    remove_transparency_toggled = pyqtSignal(bool)
     solid_bg_auto_requested = pyqtSignal()
     sprite_assign_clicked = pyqtSignal()
     
@@ -1012,6 +1013,11 @@ class ControlPanel(QWidget):
         self.solid_bg_checkbox.toggled.connect(self._on_solid_bg_toggled)
         export_layout.addWidget(self.solid_bg_checkbox)
 
+        self.remove_transparency_checkbox = QCheckBox("Remove transparency (force opaque)")
+        self.remove_transparency_checkbox.setToolTip("When enabled, sprites are rendered fully opaque in the viewer.")
+        self.remove_transparency_checkbox.toggled.connect(self._on_remove_transparency_toggled)
+        export_layout.addWidget(self.remove_transparency_checkbox)
+
         bg_controls = QVBoxLayout()
         bg_controls.setSpacing(4)
         self.solid_bg_color_row = QHBoxLayout()
@@ -1134,6 +1140,8 @@ class ControlPanel(QWidget):
         self._solid_bg_update_guard = False
         self.set_solid_bg_color(self._solid_bg_color)
         self._set_solid_bg_controls_enabled(False)
+        self._remove_transparency_enabled = False
+        self.set_remove_transparency_enabled(False)
 
     def update_audio_status(self, message: str, success: bool = False):
         """Update the inline audio status label."""
@@ -1193,6 +1201,10 @@ class ControlPanel(QWidget):
     def _on_solid_bg_toggled(self, enabled: bool):
         self._set_solid_bg_controls_enabled(enabled)
         self.solid_bg_enabled_changed.emit(enabled)
+
+    def _on_remove_transparency_toggled(self, enabled: bool):
+        self._remove_transparency_enabled = bool(enabled)
+        self.remove_transparency_toggled.emit(enabled)
 
     def _set_solid_bg_controls_enabled(self, enabled: bool):
         for widget in (
@@ -1287,6 +1299,12 @@ class ControlPanel(QWidget):
         self.solid_bg_checkbox.setChecked(enabled)
         self.solid_bg_checkbox.blockSignals(False)
         self._set_solid_bg_controls_enabled(enabled)
+
+    def set_remove_transparency_enabled(self, enabled: bool):
+        self.remove_transparency_checkbox.blockSignals(True)
+        self.remove_transparency_checkbox.setChecked(bool(enabled))
+        self.remove_transparency_checkbox.blockSignals(False)
+        self._remove_transparency_enabled = bool(enabled)
 
     def set_solid_bg_color(self, rgba: Tuple[int, int, int, int]):
         self._set_solid_bg_color(rgba, emit=False)

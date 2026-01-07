@@ -143,6 +143,9 @@ class OpenGLAnimationWidget(QOpenGLWidget):
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(16)  # ~60 FPS
 
+        # Viewer-level display flags
+        self.force_opaque: bool = False
+
         # Glitch options (widget-level defaults propagated to players)
         self.glitch_jitter_enabled: bool = False
         self.jitter_amplitude: float = 1.0
@@ -167,6 +170,11 @@ class OpenGLAnimationWidget(QOpenGLWidget):
     def position_scale(self, value: float):
         """Set position scale in renderer"""
         self.renderer.position_scale = value
+
+    def set_force_opaque(self, enabled: bool):
+        """Force all rendered sprites to be opaque in the renderer."""
+        self.force_opaque = bool(enabled)
+        self.renderer.force_opaque = bool(enabled)
     
     def initializeGL(self):
         """Initialize OpenGL"""
@@ -182,6 +190,8 @@ class OpenGLAnimationWidget(QOpenGLWidget):
             atlas.load_texture()
         
         self._apply_antialiasing_state()
+        # Ensure renderer honors viewer flags
+        self.renderer.force_opaque = self.force_opaque
     
     def resizeGL(self, w: int, h: int):
         """Handle resize"""

@@ -145,6 +145,7 @@ class SpriteRenderer:
         self.position_scale: float = 1.0
         self.base_world_scale: float = 1.0  # Set to 1.0 - JSON coordinates are already correct
         self.enable_logging: bool = False
+        self.force_opaque: bool = False
         self.log_data: list = []
         self.anchor_bias_x: float = 0.0
         self.anchor_bias_y: float = 0.0
@@ -448,6 +449,8 @@ class SpriteRenderer:
         scale_y = (local_state['scale_y'] / 100.0) * self.scale_bias_y
         opacity = (local_state['opacity'] / 100.0) * tint_a
         opacity = max(0.0, min(1.0, opacity))
+        if self.force_opaque:
+            opacity = 1.0
         
         # CRITICAL FIX: Keep negative scale values in the matrix!
         # The game engine does NOT separate flipping from the matrix transformation.
